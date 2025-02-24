@@ -10,7 +10,6 @@ import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.SignatureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 

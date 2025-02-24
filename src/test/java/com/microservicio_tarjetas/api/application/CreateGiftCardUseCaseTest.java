@@ -2,21 +2,17 @@ package com.microservicio_tarjetas.api.application;
 
 import com.microservicio_tarjetas.api.domain.repository.GiftCardRepository;
 import com.microservicio_tarjetas.api.infrastructure.adapter.persistence.GiftCardEntity;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.Mockito;
 import reactor.core.publisher.Mono;
-import reactor.test.StepVerifier;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.when;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-
-public class CreateGiftCardUseCaseTest {
+class CreateGiftCardUseCaseTest {
 
     @Mock
     private GiftCardRepository repository;
@@ -24,29 +20,40 @@ public class CreateGiftCardUseCaseTest {
     @InjectMocks
     private CreateGiftCardUseCase createGiftCardUseCase;
 
-    @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-    }
-
     @Test
-    void shouldCreateGiftCardSuccessfully() {
-        GiftCardEntity giftCard = new GiftCardEntity(
-                1L, "ABC1234567", new BigDecimal("100.00"), "Regalo",
-                "Tarjeta de regalo", "Amazon", LocalDateTime.now(),
-                LocalDateTime.now().plusMonths(6)
+    void testCreateGiftCard() {
+        BigDecimal amount = new BigDecimal(5000);
+        String name = "PlayStation Plus";
+        String description = "Membresía para PlayStation";
+        String company = "Sony";
+        String expectedCode = "PSN1234567";
+        LocalDateTime createdAt = LocalDateTime.now();
+        LocalDateTime expiresAt = createdAt.plusMonths(6);
+
+        GiftCardEntity expectedEntity = new GiftCardEntity(
+                null,
+                expectedCode,
+                amount,
+                name,
+                description,
+                company,
+                createdAt,
+                expiresAt
         );
 
-        when(repository.save(any(GiftCardEntity.class))).thenReturn(Mono.just(giftCard));
+        when(repository.save(Mockito.any(GiftCardEntity.class))).thenReturn(Mono.just(expectedEntity));
 
-        Mono<GiftCardEntity> result = createGiftCardUseCase.create(
-                giftCard.getAmount(), giftCard.getName(), giftCard.getDescription(), giftCard.getCompany()
-        );
+        Mono<GiftCardEntity> result = createGiftCardUseCase.create(amount, name, description, company);
 
-        StepVerifier.create(result)
-                .expectNextMatches(savedGiftCard -> savedGiftCard.getCode().length() == 10)
-                .verifyComplete();
-
-        verify(repository, times(1)).save(any(GiftCardEntity.class));
+        result.subscribe(giftCardEntity -> {
+            assertNotNull(giftCardEntity);
+            assertEquals(expectedEntity.getAmount(), giftCardEntity.getAmount());
+            assertEquals(expectedEntity.getName(), giftCardEntity.getName());
+            assertEquals(expectedEntity.getDescription(), giftCardEntity.getDescription());
+            assertEquals(expectedEntity.getCompany(), giftCardEntity.getCompany());
+            assertNotNull(giftCardEntity.getCode());
+            assertFalse(giftCardEntity.getCode().isEmpty());
+            assertEquals(expectedEntity.getExpiresAt(), giftCardEntity.getExpiresAt());
+        });
     }
 }

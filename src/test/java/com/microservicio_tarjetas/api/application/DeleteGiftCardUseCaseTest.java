@@ -2,17 +2,15 @@ package com.microservicio_tarjetas.api.application;
 
 import com.microservicio_tarjetas.api.domain.repository.GiftCardRepository;
 import com.microservicio_tarjetas.api.infrastructure.adapter.persistence.GiftCardEntity;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
 
-import static org.mockito.Mockito.*;
-
-public class DeleteGiftCardUseCaseTest {
+class DeleteGiftCardUseCaseTest {
 
     @Mock
     private GiftCardRepository repository;
@@ -20,24 +18,30 @@ public class DeleteGiftCardUseCaseTest {
     @InjectMocks
     private DeleteGiftCardUseCase deleteGiftCardUseCase;
 
-    @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-    }
-
     @Test
-    void shouldDeleteGiftCardSuccessfully() {
-        GiftCardEntity existingGiftCard = new GiftCardEntity();
-        existingGiftCard.setId(1L);
+    void testDeleteGiftCard_Success() {
+        Long giftCardId = 1L;
+        GiftCardEntity existingGiftCard = new GiftCardEntity(giftCardId, "CODE123", null, null, null, null, null, null);
 
-        when(repository.findById(1L)).thenReturn(Mono.just(existingGiftCard));
+        when(repository.findById(giftCardId)).thenReturn(Mono.just(existingGiftCard));
         when(repository.delete(existingGiftCard)).thenReturn(Mono.empty());
 
-        Mono<Void> result = deleteGiftCardUseCase.deleteGiftCard(1L);
+        Mono<Void> result = deleteGiftCardUseCase.deleteGiftCard(giftCardId);
 
         StepVerifier.create(result)
                 .verifyComplete();
 
-        verify(repository, times(1)).delete(existingGiftCard);
+        verify(repository).delete(existingGiftCard);
+    }
+
+    @Test
+    void testDeleteGiftCard_NotFound() {
+        Long giftCardId = 2L;
+        when(repository.findById(giftCardId)).thenReturn(Mono.empty());
+        Mono<Void> result = deleteGiftCardUseCase.deleteGiftCard(giftCardId);
+        StepVerifier.create(result)
+                .expectErrorMatches(throwable -> throwable instanceof RuntimeException &&
+                        throwable.getMessage().equals("GiftCard no encontrada con ID: " + giftCardId))
+                .verify();
     }
 }
