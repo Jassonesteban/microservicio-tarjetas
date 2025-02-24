@@ -28,17 +28,13 @@ public class JwTokenFilter implements WebFilter {
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
-        String token = getTokenFromRequest(exchange);
-        if (token != null && validateToken(token)) {
-            return chain.filter(exchange);
-        } else {
-            return Mono.error(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized: Invalid or missing token"));
-        }
+        return chain.filter(exchange);
     }
 
 
-    private String getTokenFromRequest(ServerWebExchange  exchange) {
+    private String getTokenFromRequest(ServerWebExchange exchange) {
         String header = exchange.getRequest().getHeaders().getFirst("Authorization");
+        System.out.println("Authorization Header: " + header);
         if (header != null && header.startsWith("Bearer ")) {
             return header.substring(7);
         }
@@ -47,8 +43,13 @@ public class JwTokenFilter implements WebFilter {
 
     public boolean validateToken(String token) {
         try {
-            return !isTokenExpired(token) && parseClaims(token) != null;
+            boolean expired = isTokenExpired(token);
+            System.out.println("Token Expired: " + expired);
+            Claims claims = parseClaims(token);
+            System.out.println("Token Claims: " + claims);
+            return !expired && claims != null;
         } catch (JwtException e) {
+            System.out.println("Token Validation Error: " + e.getMessage());
             return false;
         }
     }
@@ -63,10 +64,15 @@ public class JwTokenFilter implements WebFilter {
     }
 
     private static Claims parseClaims(String token) {
-        return Jwts.parser()
-                .verifyWith(getSigningKey())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
+        try {
+            return Jwts.parser()
+                    .verifyWith(getSigningKey())
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+        } catch (JwtException e) {
+            System.out.println("Error al analizar el token: " + e.getMessage());
+            throw e;
+        }
     }
 }
