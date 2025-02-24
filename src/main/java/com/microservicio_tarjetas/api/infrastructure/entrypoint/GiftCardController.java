@@ -1,9 +1,6 @@
 package com.microservicio_tarjetas.api.infrastructure.entrypoint;
 
-import com.microservicio_tarjetas.api.application.CreateGiftCardUseCase;
-import com.microservicio_tarjetas.api.application.DeleteGiftCardUseCase;
-import com.microservicio_tarjetas.api.application.GetGiftCardUseCase;
-import com.microservicio_tarjetas.api.application.UpdateGiftCardUseCase;
+import com.microservicio_tarjetas.api.application.*;
 import com.microservicio_tarjetas.api.domain.GiftCardService;
 import com.microservicio_tarjetas.api.domain.model.GiftCard;
 import com.microservicio_tarjetas.api.domain.model.GiftCardRequestDTO;
@@ -24,14 +21,21 @@ public class GiftCardController {
     private final GiftCardService giftCardService;
     private final UpdateGiftCardUseCase updateGiftCardUseCase;
     private final DeleteGiftCardUseCase deleteGiftCardUseCase;
+    private final EmitGiftCardUseCase emitGiftCardUseCase;
 
     @Autowired
-    public GiftCardController(CreateGiftCardUseCase createGiftCardUseCase, GetGiftCardUseCase getGiftCardUseCase, GiftCardService giftCardService, UpdateGiftCardUseCase updateGiftCardUseCase, DeleteGiftCardUseCase deleteGiftCardUseCase) {
+    public GiftCardController(CreateGiftCardUseCase createGiftCardUseCase, GetGiftCardUseCase getGiftCardUseCase, GiftCardService giftCardService, UpdateGiftCardUseCase updateGiftCardUseCase, DeleteGiftCardUseCase deleteGiftCardUseCase, EmitGiftCardUseCase emitGiftCardUseCase) {
         this.createGiftCardUseCase = createGiftCardUseCase;
         this.getGiftCardUseCase = getGiftCardUseCase;
         this.giftCardService = giftCardService;
         this.updateGiftCardUseCase = updateGiftCardUseCase;
         this.deleteGiftCardUseCase = deleteGiftCardUseCase;
+        this.emitGiftCardUseCase = emitGiftCardUseCase;
+    }
+
+    @GetMapping
+    public Flux<GiftCardEntity> getAllGiftCards(){
+        return emitGiftCardUseCase.getAll();
     }
 
     @PostMapping("/create")
