@@ -3,6 +3,14 @@ package com.microservicio_tarjetas.api.infrastructure.config;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.http.HttpHeaders;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.ReactiveSecurityContextHolder;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.context.SecurityContextImpl;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebFilter;
@@ -14,7 +22,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
 import javax.crypto.SecretKey;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 
 @Component
 public class JwTokenFilter implements WebFilter {
@@ -28,13 +39,37 @@ public class JwTokenFilter implements WebFilter {
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
+        String path = exchange.getRequest().getPath().value();
+
+        if (path.equals("/api/v1/tarjetas/create")) {
+            String token = getTokenFromRequest(exchange);
+
+            if (token == null || !validateToken(token)) {
+                System.out.println("⛔ Token inválido o ausente en: " + path);
+                exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+                return exchange.getResponse().setComplete();
+            }
+
+            System.out.println("✅ Token válido para la ruta: " + path);
+
+            Claims claims = parseClaims(token);
+            String username = claims.getSubject();
+
+            Authentication auth = new UsernamePasswordAuthenticationToken(username, null, Collections.emptyList());
+
+            SecurityContext context = new SecurityContextImpl(auth);
+
+            return chain.filter(exchange)
+                    .contextWrite(ReactiveSecurityContextHolder.withSecurityContext(Mono.just(context)));
+        }
+
         return chain.filter(exchange);
     }
 
 
     private String getTokenFromRequest(ServerWebExchange exchange) {
-        String header = exchange.getRequest().getHeaders().getFirst("Authorization");
-        System.out.println("Authorization Header: " + header);
+        String header = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
+        System.out.println("🔍 Authorization Header: " + header);
         if (header != null && header.startsWith("Bearer ")) {
             return header.substring(7);
         }

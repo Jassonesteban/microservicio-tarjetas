@@ -22,8 +22,10 @@ public class SecurityConfig {
         return http
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .authorizeExchange(auth -> auth
-                        .anyExchange().permitAll() // Permitir todas las solicitudes sin autenticación
+                        .pathMatchers("/api/v1/tarjetas/create").authenticated()
+                        .anyExchange().permitAll()
                 )
+                .addFilterAt(jwTokenFilter, SecurityWebFiltersOrder.AUTHENTICATION)
                 .build();
     }
 }
